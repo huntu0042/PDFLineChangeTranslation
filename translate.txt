@@ -1,0 +1,407 @@
+Toward Characteristic-Preserving Image-based Virtual Try-On Network Bochao Wang1,2 , Huabin Zheng1,2 , Xiaodan Liang1? , Yimin Chen2 , Liang Lin1,2 , and Meng Yang1
+특징 기반 가상 체험 네트워크 보아 오 왕 1,2, Huabin Zheng 1,2, Xiaodan Liang1? , Yimin Chen2, Liang Lin1,2, Meng Yang1
+
+1 Sun Yat-sen University, China
+중국의 Sun Yat-sen 대학교 1 곳
+
+2 SenseTime Group Limited {wangboch,zhhuab}@mail2.sysu.edu.cn,xdliang328@gmail.com, chenyimin@sensetime.com, linliang@ieee.org, yangm6@mail.sysu.edu.cn Abstract. Image-based virtual try-on systems for fitting a new in-shop clothes into a person image have attracted increasing research attention, yet is still challenging. A desirable pipeline should not only transform the target clothes into the most fitting shape seamlessly but also preserve well the clothes identity in the generated image, that is, the key characteristics (e.g. texture, logo, embroidery) that depict the original clothes. However, previous image-conditioned generation works fail to meet these critical requirements towards the plausible virtual try-on performance since they fail to handle large spatial misalignment between the input image and target clothes. Prior work explicitly tackled spatial deformation using shape context matching, but failed to preserve clothing details due to its coarse-to-fine strategy. In this work, we propose a new fully-learnable Characteristic-Preserving Virtual Try-On Network (CP-VTON) for addressing all real-world challenges in this task. First, CP-VTON learns a thin-plate spline transformation for transforming the in-shop clothes into fitting the body shape of the target person via a new Geometric Matching Module (GMM) rather than computing correspondences of interest points as prior works did. Second, to alleviate boundary artifacts of warped clothes and make the results more realistic, we employ a Try-On Module that learns a composition mask to integrate the warped clothes and the rendered image to ensure smoothness. Extensive experiments on a fashion dataset demonstrate our CP-VTON achieves the state-of-the-art virtual try-on performance both qualitatively and quantitatively.
+2 SenseTime Group Limited {wangboch, zhhuab} @ mail2.sysu.edu.cn, xdliang328 @ gmail.com, chenyimin@sensetime.com, linliang@ieee.org, yangm6@mail.sysu.edu.cn 요약. 새로운 인 상점 옷을 사람의 이미지에 맞추기위한 이미지 기반의 가상 시연 시스템은 연구에 대한 관심이 높아지고 있지만 아직도 도전 중이다. 바람직한 파이프 라인은 대상 옷을 가장 적합한 모양으로 완벽하게 변형 할뿐만 아니라 생성 된 이미지의 옷감, 즉 원래의 옷을 묘사하는 주요 특성 (예 : 질감, 로고, 자수)을 잘 보존해야합니다. 그러나 이전의 이미지 컨디셔닝 된 생성 작업은 입력 이미지와 대상 의류 사이의 큰 공간적 불일치를 처리하지 못하기 때문에 그럴듯한 가상 시험 성능에 대한 이러한 중요한 요구 사항을 충족시키지 못합니다. 이전의 작업은 형상 컨텍스트 매칭을 사용하여 명시 적으로 공간적 변형에 대처했으나 거칠고 미세한 전략으로 인해 의복 세부 사항을 보존하지 못했습니다. 이 작업에서는이 작업에서 실제와 관련된 모든 문제를 해결할 수있는 완전 학습 형 특성 보존 가상 체험 네트워크 (CP-VTON)를 제안합니다. 첫째, CP-VTON은 이전 작업에서와 같이 관심 지점의 대응점을 계산하기보다는 새로운 Geometric Matching Module (GMM)을 통해 대상자의 몸 모양을 피팅으로 변환하기위한 매장 플레이트 옷을 변형시키는 박판 스플라인 변환을 학습합니다. 둘째, 뒤틀린 옷의 경계 아티팩트를 줄이고 결과를 더욱 사실적으로 만들기 위해 뒤틀린 옷과 렌더링 된 이미지를 통합하여 부드러움을 보장하는 컴포지션 마스크를 학습하는 Try-On Module을 사용합니다. 패션 데이터 세트에 대한 광범위한 실험을 통해 CP-VTON이 질적으로나 정량적으로 최첨단 가상 시험 성능을 달성 할 수 있음을 보여줍니다.
+
+Keywords: Virtual Try-On · Characteristic-Preserving · Thin Plate Spline · Image Alignment
+키워드 : Virtual Try-On · 특성 보존 · 얇은 판 스플라인 · 이미지 정렬
+
+1 Introduction Online apparel shopping has huge commercial advantages compared to traditional shopping(e.g. time, choice, price) but lacks physical apprehension. To ? The corresponding author is Xiaodan Liang
+1 소개 온라인 의류 쇼핑은 전통적인 쇼핑 (예 : 시간, 선택, 가격)에 비해 엄청난 상업적 이점을 가지고 있지만 물리적 이해가 부족합니다. 에? 해당 저자는 Xiaodan Liang입니다.
+
+2 Bochao Wang et al.
+2 Bochao Wang et al.
+
+VITON VITON CP-VTON CP-VTON VITON CP-VTON Fig. 1. The proposed CP-VTON can generate more realistic image-based virtual tryon results that preserve well key characteristics of the in-shop clothes, compared to the state-of-the-art VITON [10].
+VITON VITON CP-VTON 그림 1. 제안 된 CP-VTON은 현존하는 의류와 비교하여 매장 내 의류의 핵심 특성을 잘 보존하는보다 사실적인 이미지 기반의 가상적 결과를 생성 할 수있다. 최첨단 VITON [10].
+
+create a shopping environment close to reality, virtual try-on technology has attracted a lot of interests recently by delivering product information similar to that obtained from direct product examination. It allows users to experience themselves wearing different clothes without efforts of changing them physically. This helps users to quickly judge whether they like a garment or not and make buying decisions, and improves sales efficiency of retailers. The traditional pipeline is to use computer graphics to build 3D models and render the output images since graphics methods provide precise control of geometric transformations and physical constraints. But these approaches require plenty of manual labor or expensive devices to collect necessary information for building 3D models and massive computations.
+현실에 가까운 쇼핑 환경을 조성하기 위해 가상 시험 기술은 직접 제품 검사에서 얻은 것과 유사한 제품 정보를 제공하여 최근 많은 관심을 끌어 왔습니다. 그것은 사용자가 물리적으로 변화시키지 않고 다른 옷을 입는 것을 경험할 수있게합니다. 이를 통해 사용자는 의류를 좋아하는지 여부를 신속하게 판단하고 구매 결정을 내리고 소매 업체의 판매 효율성을 향상시킬 수 있습니다. 전통적인 파이프 라인은 컴퓨터 그래픽을 사용하여 3D 모델을 작성하고 출력 이미지를 렌더링하는 것입니다. 그래픽 메소드는 기하학적 변환과 물리적 제약을 정밀하게 제어하기 때문입니다. 그러나 이러한 접근법은 3D 모델 및 방대한 계산을 작성하는 데 필요한 정보를 수집하기 위해 많은 수작업 노동 또는 값 비싼 장치가 필요합니다.
+
+More recently, the image-based virtual try-on system [10] without resorting to 3D information, provides a more economical solution and shows promising results by reformulating it as a conditional image generation problem. Given two images, one of a person and the other of an in-shop clothes, such pipeline aims to synthesize a new image that meets the following requirements: a) the person is dressed in the new clothes; b) the original body shape and pose are retained; c) the clothing product with high-fidelity is warped smoothly and seamlessly connected with other parts; d) the characteristics of clothing product, such as texture, logo and text, are well preserved, without any noticeable artifacts and distortions. Current research and advances in conditional image generation (e.g.
+최근에는 3D 정보에 의존하지 않는 이미지 기반 가상 시험 시스템 [10]이 조건부 이미지 생성 문제로 재구성함으로써보다 경제적 인 솔루션을 제공하고 유망한 결과를 보여줍니다. 사람과 가게의 옷 중 하나 인 두 개의 이미지가 주어지면, 그러한 파이프 라인은 다음과 같은 요구 사항을 충족시키는 새로운 이미지를 합성하는 것을 목표로합니다 : a) 새 옷을 입은 사람. b) 원래의 몸 모양과 포즈가 유지된다; c) 고 충실도의 의류 제품이 다른 부품과 원활하고 원활하게 휘게된다. d) 텍스처, 로고 및 텍스트와 같은 의류 제품의 특성은 눈에 띄는 유물 및 왜곡없이 잘 보존됩니다. 조건부 이미지 생성에 대한 현재 연구 및 발전 (예 :
+
+image-to-image translation [12, 38, 5, 34, 20, 6]) make it seem to be a natural approach of facilitating this problem. Besides the common pixel-to-pixel losses (e.g.
+이미지 - 이미지 번역 [12, 38, 5, 34, 20, 6])은이 문제를 촉진시키는 자연스러운 방법 인 것처럼 보인다. 일반적인 픽셀 대 픽셀 손실 (예를 들어,
+
+L1 or L2 losses) and perceptual loss [14], an adversarial loss [12] is used to alleviate the blurry issue in some degree, but still misses critical details. Furthermore, these methods can only handle the task with roughly aligned input-output pairs and fail to deal with large transformation cases. Such limitations hinder their CP-VTON 3 application on this challenging virtual try-on task in the wild. One reason is the poor capability in preserving details when facing large geometric changes, e.g.
+L1 or L2 losses) and perceptual loss [14], an adversarial loss [12] is used to alleviate the blurry issue in some degree, but still misses critical details. Furthermore, these methods can only handle the task with roughly aligned input-output pairs and fail to deal with large transformation cases. Such limitations hinder their CP-VTON 3 application on this challenging virtual try-on task in the wild. One reason is the poor capability in preserving details when facing large geometric changes, e.g.
+Error 501
+
+conditioned on unaligned image [23]. The best practice in image-conditional virtual try-on is still a two-stage pipeline VITON [10]. But their performances are far from the plausible and desired generation, as illustrated in Fig. 1. We argue that the main reason lies in the imperfect shape-context matching for aligning clothes and body shape, and the inferior appearance merging strategy.
+정렬되지 않은 이미지를 조건으로 [23]. 이미지 조건부 가상 시운전의 모범 사례는 여전히 2 단계 파이프 라인 VITON [10]입니다. 그러나 그 성과는 그림 1에서와 같이 그럴 듯하고 바람직한 세대와는 거리가 멀다. 주된 이유는 옷과 몸 모양을 맞추기위한 불완전한 형태 - 맥락 일치와 열등한 출현 합병 전략에 있다고 주장한다.
+
+To address the aforementioned challenges, we present a new image-based method that successfully achieves the plausible try-on image syntheses while preserving cloth characteristics, such as texture, logo, text and so on, named as Characteristic-Preserving Image-based Virtual Try-On Network (CP-VTON). In particular, distinguished from the hand-crafted shape context matching, we propose a new learnable thin-plate spline transformation via a tailored convolutional neural network in order to align well the in-shop clothes with the target person.
+앞서 언급 한 문제를 해결하기 위해 텍스쳐, 로고, 텍스트 등과 같은 옷감의 특성을 보존하면서 그럴듯한 시험 이미지 합성을 성공적으로 달성하는 새로운 이미지 기반 방법을 제시합니다. - 네트워크 (CP-VTON). 특히, 수작업으로 만들어진 형상 컨텍스트 매칭과는 달리 맞춤형 컨볼 루션 뉴럴 네트워크를 통해 새로운 학습 가능한 얇은 판 스플라인 변환을 제안하여 매장 내 옷을 대상자와 잘 조화시킵니다.
+
+The network parameters are trained from paired images of in-shop clothes and a wearer, without the need of any explicit correspondences of interest points. Second, our model takes the aligned clothes and clothing-agnostic yet descriptive person representation proposed in [10] as inputs, and generates a pose-coherent image and a composition mask which indicates the details of aligned clothes kept in the synthesized image. The composition mask tends to utilize the information of aligned clothes and balances the smoothness of the synthesized image. Extensive experiments show that the proposed model handles well the large shape and pose transformations and achieves the state-of-art results on the dataset collected by Han et al. [10] in the image-based virtual try-on task.
+네트워크 매개 변수는 관심 지점의 명확한 대응을 필요로하지 않으면 서 상점 의류와 착용자의 쌍으로 된 이미지로부터 훈련됩니다. 둘째로, 우리의 모델은 [10]에서 제안 된 정렬 된 옷과 의류에 의존하지 않고 설명적인 사람 표현을 입력으로 사용하여 포즈 코 히어 런트 이미지와 합성 이미지에 보관 된 정렬 된 옷의 세부 사항을 나타내는 컴포지션 마스크를 생성합니다. 컴포지션 마스크는 정렬 된 옷감의 정보를 활용하는 경향이 있으며 합성 된 이미지의 매끄러움을 조화시킵니다. 광범위한 실험은 제안 된 모델이 큰 모양을 처리하고 변형을 포즈하고 Han et al이 수집 한 데이터 세트에 대한 최첨단 결과를 얻음을 보여줍니다. [10]에서 이미지 기반의 가상 시도 작업.
+
+Our contributions can be summarized as follows: ? We propose a new Characteristic-Preserving image-based Virtual Try-On Network (CP-VTON) that addresses the characteristic preserving issue when facing large spatial deformation challenge in the realistic virtual try-on task.
+우리의 공헌은 다음과 같이 요약 될 수 있습니다. 현실적인 가상 시험 작업에서 큰 공간 변형 문제를 직면 할 때 특성 보존 문제를 해결하는 새로운 특성 보존 형 이미지 기반 가상 시험 네트워크 (CP-VTON)를 제안합니다.
+
+? Different from the hand-crafted shape context matching, our CP-VTON incorporates a full learnable thin-plate spline transformation via a new Geometric Matching Module to obtain more robust and powerful alignment.
+? 손으로 제작 한 형상 컨텍스트 매칭과는 달리 CP-VTON은보다 강력하고 강력한 정렬을 위해 새로운 기하학적 매칭 모듈을 통해 전체적으로 학습 가능한 얇은 판 스플라인 변환을 통합합니다.
+
+? Given aligned images, a new Try-On Module is performed to dynamically merge rendered results and warped results.
+? 정렬 된 이미지가 주어지면 새로운 Try-On Module이 수행되어 렌더링 된 결과와 뒤틀린 결과를 동적으로 병합합니다.
+
+? Significant superior performances in image-based virtual try-on task achieved by our CP-VTON have been extensively demonstrated by experiments on the dataset collected by Han et al. [10].
+? Significant superior performances in image-based virtual try-on task achieved by our CP-VTON have been extensively demonstrated by experiments on the dataset collected by Han et al. [10].
+Error 189
+
+2 Related Work
+2 관련 연구
+
+2.1 Image synthesis Generative adversarial networks(GANs) [9] aim to model the real image distribution by forcing the generated samples to be indistinguishable from the real images. Conditional generative adversarial networks(cGANs) have shown impressive results on image-to-image translation, whose goal is to translate an input
+2.1 영상 합성 Generative adversarial networks (GANs) [9]는 생성 된 샘플을 실제 영상과 구분할 수 없게함으로써 실제 영상 분포를 모델링하는 것을 목표로한다. 조건부 생성 적 적대 네트워크 (cGAN)는 이미지 - 이미지 번역에 대한 인상적인 결과를 보여주었습니다. 목표는 입력을 번역하는 것입니다
+
+4 Bochao Wang et al.
+4 Bochao Wang et al.
+
+image from one domain to another domain [12, 38, 5, 34, 18, 19, 35]. Compared L1/L2 loss, which often leads to blurry images, the adversarial loss has become a popular choice for many image-to-image tasks. Recently, Chen and Koltun [3] suggest that the adversarial loss might be unstable for high-resolution image generation. We find the adversarial loss has little improvement in our model. In image-to-image translation tasks, there exists an implicit assumption that the input and output are roughly aligned with each other and they represent the same underlying structure. However, most of these methods have some problems when dealing with large spatial deformations between the conditioned image and the target one. Most of image-to image translation tasks conditioned on unaligned images [10, 23, 37], adopt a coarse-to-fine manner to enhance the quality of final results. To address the misalignment of conditioned images, Siarohit et al. [31] introduced a deformable skip connections in GAN, using the correspondences of the pose points. VITON [10] computes shape context thin-plate spline(TPS) transofrmation [2] between the mask of in-shop clothes and the predicted foreground mask. Shape context is a hand-craft feature for shape and the matching of two shapes is time-consumed. Besides, the computed TPS transoformations are vulnerable to the predicted mask. Inspired by Rocco et al. [27], we design a convolutional neural network(CNN) to estimate a TPS transformation between in-shop clothes and the target image without any explicit correspondences of interest points.
+한 도메인에서 다른 도메인으로 이미지 [12, 38, 5, 34, 18, 19, 35]. L1 / L2 손실은 종종 이미지가 흐릿 해지기 때문에 많은 이미지 - 이미지 작업에서 인기를 끌고 있습니다. 최근 Chen과 Koltun [3]은 고해상도 이미지 생성에 대한 적의 손실이 불안정 할 수 있다고 제안했다. 우리는 적자 손실이 우리 모델에서 거의 개선되지 않았 음을 알 수 있습니다. 이미지 - 이미지 변환 작업에는 입력과 출력이 서로 대략 정렬되어 있으며 동일한 기본 구조를 나타내는 암묵적인 가정이 있습니다. 그러나, 이러한 방법의 대부분은 컨디셔닝 된 이미지와 타겟 이미지 사이의 큰 공간적 변형을 다룰 때 약간의 문제를 가지고있다. 정렬되지 않은 이미지 [10, 23, 37]에 컨디셔닝 된 대부분의 이미지 - 이미지 변환 작업은 최종 결과의 품질을 향상시키기 위해 거친 - 미세 방식을 채택합니다. 조건부 이미지의 정렬 불량을 해결하기 위해 Siarohit et al. [31]은 포즈 포인트의 대응 관계를 사용하여 GAN에서 변형 가능한 스킵 연결을 도입했다. VITON [10]은 in-shop 옷의 마스크와 예측 된 전경 마스크 사이의 shape context thin-plate spline (TPS) transofrmation [2]을 계산한다. 모양 컨텍스트는 모양에 대한 수작업 기능이며 두 모양의 일치는 시간 소모적입니다. 게다가, 계산 된 TPS 변환 정보는 예측 된 마스크에 취약합니다. Rocco et al. [27], 우리는 관심 지점의 명시적인 일치없이 상점 내 옷과 대상 이미지 사이의 TPS 변환을 추정하기 위해 CNN (convolutional neural network)을 설계한다.
+
+2.2 Person Image generation Lassner et al. [17] introduced a generative model that can generate human parsing [8] maps and translate them into persons in clothing. But it is not clear how to control the generated fashion items. Zhao et al. [37] addressed a problem of generating multi-view clothing images based on a given clothing image of a certain view. PG2 [23] synthesizes the person images in arbitrary pose, which explicitly uses the target pose as a condition. Siarohit et al. [31] dealt the same task as PG2, but using the correspondences between the target pose and the pose of conditional image. The generated fashion items in [37, 23, 31], kept consistent with that of the conditional images. FashionGAN [39] changed the fashion items on a person and generated new outfits by text descriptions. The goal of virtual try-on is to synthesize a photo-realistic new image with a new piece of clothing product, while leaving out effects of the old one. Yoo te al. [36] generated in shop clothes conditioned on a person in clothing, rather than the reverse.
+2.2 Person Image generation Lassner et al. [17] introduced a generative model that can generate human parsing [8] maps and translate them into persons in clothing. But it is not clear how to control the generated fashion items. Zhao et al. [37] addressed a problem of generating multi-view clothing images based on a given clothing image of a certain view. PG2 [23] synthesizes the person images in arbitrary pose, which explicitly uses the target pose as a condition. Siarohit et al. [31] dealt the same task as PG2, but using the correspondences between the target pose and the pose of conditional image. The generated fashion items in [37, 23, 31], kept consistent with that of the conditional images. FashionGAN [39] changed the fashion items on a person and generated new outfits by text descriptions. The goal of virtual try-on is to synthesize a photo-realistic new image with a new piece of clothing product, while leaving out effects of the old one. Yoo te al. [36] generated in shop clothes conditioned on a person in clothing, rather than the reverse.
+Error 1062
+
+2.3 Virtual Try-on System Most virtual try-on works are based on graphics models. Sekine et al. [30] introduced a virtual fitting system that captures 3D measurements of body shape.
+2.3 가상 시험 시스템 (Virtual Try-on System) 대부분의 가상 시험 작동은 그래픽 모델을 기반으로합니다. Sekine et al. [30]은 신체 모양에 대한 3D 측정을 포착하는 가상 피팅 시스템을 소개했다.
+
+Chen et al. [4] used a SCAPE [1] body model to generate synthetic people. PonsMoll et al. [26] used a 3D scanner to automatically capture real clothing and estimate body shape and pose. Compared to graphics models, image-based generative models are more computationally efficient. Jetchev and Bergmann [13] CP-VTON 5 Loss Warped Clothes In-shop Clothes Person Representation Clothes on Person Down Sample Layers Up Sample Layers Correlation Matching TPS Warping Mask Composition Try-on Module Geometric Matching Module Person Representation Warped Clothes Loss C Final Result Ground Truth Image Rendered Person Fig. 2. An overview of our CP-VTON, containing two main modules. (a) Geometric Matching Module: the in-shop clothes c and input image representation p are aligned via a learnable matching module. (b) Try-On Module: it generates a composition mask M and a rendered person Ir. The final results Io is composed by warped clothes ?c and the rendered person Ir with the composition mask M.
+Chen et al. [4] 합성 인물을 생성하기 위해 SCAPE [1] 바디 모델을 사용했습니다. PonsMoll et al. [26]은 3D 스캐너를 사용하여 실제의 의복을 자동으로 포착하고 몸 모양과 포즈를 추정했습니다. 그래픽 모델과 비교하여 이미지 기반 생성 모델은 계산 상 효율적입니다. Jetchev와 Bergmann [13] CP-VTON 5 손실 된 뒤틀린 옷 상점에서의 옷 사람 표현 옷 위로부터 샘플 층 위로 샘플 층 상관 관계 매칭 TPS 뒤틀기 마스크 작문 시연 모듈 기하학적 매칭 모듈 사람 표현 뒤틀린 옷 손실 C 최종 결과지면 진실 이미지 렌더링 된 인물 그림 2. CP-VTON의 개요. 두 개의 주요 모듈이 포함되어 있습니다. (a) 기하학적 매칭 모듈 : 매장 내 의류와 입력 이미지 표현 p는 학습 가능한 매칭 모듈을 통해 정렬된다. (b) 시험 모듈 : 합성 마스크 M과 렌더링 된 사람 Ir를 생성한다. 최종 결과 (Io)는 뒤틀린 옷 (c)과 렌더링 된 사람 (Ir)이 합성 마스크 (M)로 구성된다.
+
+proposed a conditional analogy GAN to swap fashion articles, without other descriptive person representation. They didn’t take pose variant into consideration, and during inference, they required the paired images of in-shop clothes and a wearer, which limits their practical scenarios. The most related work is VITON [10]. We all aim to synthesize photo-realistic image directly from 2D images. VITON addressed this problem with a coarse-to-fine framework and expected to capture the cloth deformation by a shape context TPS transoformation. We propose an alignment network and a single pass generative framework, which preserving the characteristics of in-shop clothes.
+다른 기술적 인 표현없이 패션 기사를 교환하기위한 조건부 유사 GAN을 제안했습니다. 그들은 포즈 변형을 고려하지 않았고, 추론 중에는 실제 옷감과 착용자의 이미지가 필요했기 때문에 실용적인 시나리오가 제한되었습니다. 가장 관련된 작업은 VITON [10]입니다. 우리 모두는 2D 이미지에서 직접 사실적인 이미지를 합성하는 것을 목표로합니다. VITON은이 문제를 조밀 한 프레임 워크로 다루었으며 모양 컨텍스트 TPS 트랜스 포메이션으로 천 변형을 캡처 할 것으로 예상됩니다. 우리는 매장 내 옷의 특성을 보존하는 정렬 네트워크와 단일 패스 생성 프레임 워크를 제안합니다.
+
+3 Characteristic-Preserving Virtual Try-On Network We address the task of image-based virtual try-on as a conditional image generation problem. Generally, given a reference image Ii of a person wearing in clothes ci and a target clothes c, the goal of CP-VTON is to synthesize a new image Io of the wearer in the new cloth co, in which the body shape and pose of Ii are retained, the characteristics of target clothes c are reserved and the effects of the old clothes ci are eliminated.
+3 특성 - 가상 시험 네트워크 보존 우리는 조건 기반 이미지 생성 문제로 이미지 기반 가상 시험의 과제를 다룹니다. 일반적으로, 의복 (ci)과 대상 의류 (c)를 입은 사람의 기준 이미지 (Ii)가 주어진다면, CP-VTON의 목표는 새로운 옷 (co)에서 착용자의 새로운 이미지 (Io)를 합성하는 것이다. 를 유지하고, 대상 의류 (c)의 특성을 보존하고, 구 (ci)의 효과를 제거한다.
+
+6 Bochao Wang et al.
+6 Bochao Wang et al.
+
+Training with sample triplets (Ii , c, It) where It is the ground truth of Io and c is coupled with It wearing in clothes ct, is straightforward but undesirable in practice. Because these triplets are difficult to collect. It is easier if Ii is same as It, which means that c, It pairs are enough. These paris are in abundance from shopping websites. But directly training on (It, c, It) harms the model generalization ability at testing phase when only decoupled inputs (Ii , c) are available. Prior work [10] addressed this dilemma by constructing a clothingagnostic person representation p to eliminate the effects of source clothing item ci . With (It, c, It) transformed into a new triplet form (p, c, It), training and testing phase are unified. We adopted this representation in our method and further enhance it by eliminating less information from reference person image.
+견본 세 쌍둥이 (Ii, c, It)로 훈련하는 것은 Io의 진실 진실이며 c는 옷 ct로 입는 것과 결합되어 있지만 실제로는 간단하지만 바람직하지 않습니다. 이 세 쌍둥이는 모으기가 어렵 기 때문에. Ii가 It와 동일하다면 더 쉽습니다. 즉, c는 쌍으로 충분합니다. 이 파리는 쇼핑 웹 사이트에서 풍부합니다. 그러나 직접적으로 (It, c, It)에 대한 훈련은 분리 된 입력 (Ii, c)만이 가능할 때 시험 단계에서 모델 일반화 능력에 해를 끼친다. 선행 연구 [10]는 소스 의류 아이템 ci의 영향을 제거하기 위해 의류 진화 자 표현 p를 구축함으로써 이러한 딜레마를 해결했다. 새로운 (a, c, It)을 새로운 트리플렛 형식 (p, c, It)으로 변환하면 교육 및 테스트 단계가 통합됩니다. 우리는이 표현을 우리의 방법에 채택했으며 참조 인물 이미지에서 더 적은 정보를 제거함으로써 그것을 향상시켰다.
+
+Details are described in Sec. 3.1. One of the challenges of image-based virtual try-on lies in the large spatial misalignment between in-shop clothing item and wearer’s body. Existing network architectures for conditional image generation (e.g. FCN [21], UNet [28], ResNet [11]) lack the ability to handle large spatial deformation, leading to blurry try-on results. We proposed a Geometric Matching Module (GMM) to explicitly align the input clothes c with aforementioned person representation p and produce a warped clothes image ?c. GMM is a endto-end neural network directly trained using pixel-wise L1 loss. Sec. 3.2 gives the details. Sec. 3.3 completes our virtual try-on pipeline with a characteristicpreserving Try-On Module. The Try-On module synthesizes final try-on results Io by fusing the warped clothes ?c and the rendered person image Ir. The overall pipeline is depicted in Fig. 2.
+Details are described in Sec. 3.1. One of the challenges of image-based virtual try-on lies in the large spatial misalignment between in-shop clothing item and wearer’s body. Existing network architectures for conditional image generation (e.g. FCN [21], UNet [28], ResNet [11]) lack the ability to handle large spatial deformation, leading to blurry try-on results. We proposed a Geometric Matching Module (GMM) to explicitly align the input clothes c with aforementioned person representation p and produce a warped clothes image ?c. GMM is a endto-end neural network directly trained using pixel-wise L1 loss. Sec. 3.2 gives the details. Sec. 3.3 completes our virtual try-on pipeline with a characteristicpreserving Try-On Module. The Try-On module synthesizes final try-on results Io by fusing the warped clothes ?c and the rendered person image Ir. The overall pipeline is depicted in Fig. 2.
+Error 898
+
+3.1 Person Representation The original cloth-agnostic person representation [10] aims at leaving out the effects of old clothes ci like its color, texture and shape, while preserving information of input person Ii as much as possible, including the person’s face, hair, body shape and pose. It contains three components: ? Pose heatmap: an 18-channel feature map with each channel corresponding to one human pose keypoint, drawn as an 11 × 11 white rectangle.
+3.1 사람의 표현 원래의 옷을 입지 않는 사람의 표현 [10]은 입술의 얼굴, 머리카락, 머리카락 등을 가능한 한 많이 보존하면서 입체의 색, 질감 및 모양과 같은 오래된 옷의 효과를 버리는 것을 목표로한다 [10] 몸 모양과 포즈. 그것은 세 가지 구성 요소를 포함합니다 :? 포즈 히트 맵 : 각 채널이 11 x 11 흰색 직사각형으로 그려진 하나의 인간 포즈 키포인트에 해당하는 18 개 채널 기능 맵.
+
+? Body shape: a 1-channel feature map of a blurred binary mask that roughly covering different parts of human body.
+? Body shape : 대략적으로 인체의 다른 부분을 덮는 희미한 바이너리 마스크의 1 채널 특징지도.
+
+? Reserved regions: an RGB image that contains the reserved regions to maintain the identity of a person, including face and hair.
+? 예약 영역 : 얼굴과 머리카락을 포함하여 사람의 신원을 유지하기 위해 예약 된 영역이 포함 된 RGB 이미지입니다.
+
+These feature maps are all scaled to a fixed resolution 256×192 and concatenated together to form the cloth-agnostic person representation map p of k channels, where k = 18 + 1 + 3 = 22. We also utilize this representation in both our matching module and try-on module.
+이들 특징지도는 모두 고정 해상도 256 × 192로 스케일되고 k = 18 + 1 + 3 = 22 인 헝겊에 무관 한 사람 표현지도 p를 형성하기 위해 함께 연결됩니다. 우리는 또한이 표현을 우리의 매칭 모듈 및 시험 모듈.
+
+3.2 Geometric Matching Module The classical approach for the geometry estimation task of image matching consists of three stages: (1) local descriptors (e.g. shape context [2], SIFT [22] ) CP-VTON 7 are extracted from both input images, (2) the descriptors are matched across images form a set of tentative correspondences, (3) these correspondences are used to robustly estimate the parameters of geometric model using RANSAC [7] or Hough voting [16, 22].
+3.2 형상 매칭 모듈 이미지 매칭의 기하학적 추정 작업을위한 고전적 접근법은 다음과 같은 3 단계로 구성된다. (1) 형상 기술자 (shape context [2], SIFT [22]) CP- VTON 7은 두 입력 영상 모두에서 추출된다. 2) 기술자는 임시적인 일치 집합을 형성하며, (3) RANSAC [7] 또는 Hough 투표 [16,22]를 사용하여 기하학적 모델의 매개 변수를 견고하게 추정하는 데 사용된다.
+
+Rocco et al. [27] mimics this process using differentiable modules so that it can be trainable end-to-end for geometry estimation tasks. Inspired by this work, we design a new Geometric Matching Module (GMM) to transform the target clothes c into warped clothes ?c which is roughly aligned with input person representation p. As illustrated in Fig. 2, our GMM consists of four parts: (1) two networks for extracting high-level features of p and c respectively. (2) a correlation layer to combine two features into a single tensor as input to the regressor network. (3) the regression network for predicting the spatial transformation parameters θ. (4) a Thin-Plate Spline (TPS) transformation module T for warping an image into the output ?c = Tθ(c). The pipeline is end-to-end learnable and trained with sample triplets (p, c, ct), under the pixel-wise L1 loss between the warped result ?c and ground truth ct, where ct is the clothes worn on the target person in It: LGMM(θ) = ||c?? ct||1 = ||Tθ(c) ? ct||1 (1) The key differences between our approach and Rocco et al. [27] are three-fold.
+Rocco et al. [27]은 차별화 가능한 모듈을 사용하여이 과정을 모방하므로 기하학 추정 작업을 위해 훈련이 가능할 수 있습니다. 이 작품에서 영감을 얻어 대상 의류 c를 변형 된 옷으로 변형시키는 새로운 Geometric Matching Module (GMM)을 설계했습니다. c는 입력 사람 표현 p와 대략 일치합니다. 그림 2에서 볼 수 있듯이 GMM은 (1) p와 c의 고급 기능을 각각 추출하는 두 개의 네트워크로 구성됩니다. (2) 회귀 분석기 네트워크에 입력으로 두 개의 피쳐를 단일 텐서로 결합하는 상관 계층. (3) 공간 변환 파라미터 θ를 예측하기위한 회귀 네트워크. (4) 이미지를 출력으로 왜곡시키는 Thin-Plate Spline (TPS) 변환 모듈 T? c = Tθ (c). 파이프 라인은 뒤틀린 결과와 지상 진실 ct 사이의 픽셀 단위 L1 손실에서 샘플 triplets (p, c, ct)로 엔드 - 투 - 엔드 학습 및 훈련이 가능합니다. 여기서 ct는 대상자에게 착용되는 복장입니다 그 안에 : LGMM (θ) = || c ?? ct || 1 = || Tθ (c)? ct || 1 (1) 우리의 접근법과 Rocco et al. [27] 세 배입니다.
+
+First, we trained from scratch rather than using a pretrained VGG network. Second, our training ground truths are acquired from wearer’s real clothes rather than synthesized from simulated warping. Most importantly, our GMM is directly supervised under pixel-wise L1 loss between warping outputs and ground truth.
+첫째, 사전 훈련 된 VGG 네트워크를 사용하는 대신 처음부터 교육을 받았습니다. 둘째, 우리의 훈련장 진리는 가상의 뒤틀림에서 합성되기보다는 착용자의 실제 옷에서 얻습니다. 가장 중요한 점은 GMM은 워핑 출력과 지상 진실 사이의 픽셀 단위 L1 손실에 직접적으로 감독된다는 것입니다.
+
+3.3 Try-on Module Now that the warped clothes ?c is roughly aligned with the body shape of the target person, the goal of our Try-On module is to fuse ?c with the target person and for synthesizing the final try-on result.
+3.3 Try-on Module 뒤틀린 옷은 대상자의 몸 모양과 대략 일치하므로 Try-On 모듈의 목표는 대상자와 c를 융합시키고 최종 시험 결과를 합성하는 것입니다 .
+
+One straightforward solution is directly pasting ?c onto target person image It. It has the advantage that the characteristics of warped clothes are fully preserved, but leads to an unnatural appearance at the boundary regions of clothes and undesirable occlusion of some body parts (e.g. hair, arms). Another solution widely adopted in conditional image generation is translating inputs to outputs by a single forward pass of some encoder-decoder networks, such as UNet [28], which is desirable for rendering seamless smooth images. However, It is impossible to perfectly align clothes with target body shape. Lacking explicit spatial deformation ability, even minor misalignment could make the UNet-rendered output blurry.
+하나의 직접적인 해결책은 대상 인물 이미지에? c를 직접 붙여 넣는 것입니다. 뒤틀린 옷의 특성이 완전히 보존되지만, 옷의 경계 영역에서의 부 자연스러운 외관 및 일부 신체 부위 (예 : 머리카락, 팔)의 바람직하지 않은 폐쇄로 이어지는 이점이 있습니다. 조건부 이미지 생성에서 널리 채택 된 또 다른 솔루션은 원활한 매끄러운 이미지를 렌더링하는 데 바람직한 UNet [28]와 같은 일부 인코더 - 디코더 네트워크의 단일 순방향 패스로 입력을 출력으로 변환하는 것입니다. 그러나 옷을 목표 몸 모양과 완벽하게 맞추는 것은 불가능합니다. 명료 한 공간 변형 능력이 없으면 사소한 오정렬조차도 UNet 렌더링 된 출력이 흐려질 수 있습니다.
+
+Our Try-On Module aims to combine the advantages of both approaches above. As illustrated in Fig. 2, given a concatenated input of person representation p and the warped clothes ?c, UNet simultaneously renders a person image Ir and predicts a composition mask M. The rendered person Ir and the warped
+우리의 Try-On Module은 위 두 가지 방법의 장점을 결합하는 것을 목표로합니다. 도 2에 도시 된 바와 같이, 인물 표현 p와 뒤틀린 옷의 연결 입력이 주어지면, UNet은 동시에 인물 이미지 Ir를 렌더링하고 합성 마스크 M을 예측한다. 렌더링 된 사람 Ir 및 뒤틀린 사람
+
+8 Bochao Wang et al.
+8 Bochao Wang et al.
+
+clothes ?c are then fused together using the composition mask M to synthesize the final try-on result Io: Io = M ⊙ c?+ (1 ? M) ⊙ Ir (2) where ⊙ represents element-wise matrix multiplication.
+다음으로, 합성 마스크 M을 이용하여 옷 (3)을 융합시켜 최종적인 시험 결과 (Io)를 합성한다. 여기서, ⊙는 요소 단위의 행렬 곱셈을 나타낸다.
+
+At training phase, given the sample triples (p, c, It), the goal of Try-On Module is to minimize the discrepancy between output Io and ground truth It. We adopted the widely used strategy in conditional image generation problem that using a combination of L1 loss and VGG perceptual loss [14], where the VGG perceptual loss is defined as follows: LVGG(Io, It) = X
+트레이닝 단계에서, 샘플 트리플 (p, c, It)이 주어지면, Try-On Module의 목표는 출력 Io와 실제 진실 It 간의 불일치를 최소화하는 것입니다. 우리는 L1 손실과 VGG 지각 손실의 조합을 사용하는 조건 영상 생성 문제에서 널리 사용되는 전략을 채택했다. VGG 지각 손실은 다음과 같이 정의된다. LVGG (Io, It) = X
+
+5 i=1 λi kφi(Io) ? φi(It)k1 (3) where φi(I) denotes the feature map of image I of the i-th layer in the visual perception network φ, which is a VGG19 [32] pre-trained on ImageNet. The layer i ≥ 1 stands for ’conv1 2’, ’conv2 2’, ’conv3 2’, ’conv4 2’, ’conv5 2’, respectively.
+5 i = 1 λi kφi (Io)? 여기서, φi (I)는 영상 네트워크에서 사전 훈련 된 VGG19 [32] 인 시각 지각 네트워크 φ에서 i 번째 계층의 영상 I의 특성지도를 나타낸다. i ≥ 1 층은 각각 'conv1 2', 'conv2 2', 'conv3 2', 'conv4 2', 'conv5 2'를 나타냅니다.
+
+Towards our goal of characteristic-preserving, we bias the composition mask M to select warped clothes as much as possible by applying a L1 regularization ||1 ? M||1 on M. The overall loss function for Try-On Module (TOM) is: LTOM = λL1||Io ? It||1 + λvggLVGG( ?I, I) + λmask||1 ? M||1. (4)
+특성 보존이라는 우리의 목표를 향하여, L1 정사각형을 적용하여 가능한 한 많이 휘게 한 옷을 선택하도록 구성 마스크 M을 편향시킨다. M에 대한 M || 1 Try-On Module (TOM)의 전체 손실 함수는 다음과 같습니다. LTOM = λL1 || Io? || 1 + λvggLVGG (λI, I) + λmask || 1? M || 1. (4)
+
+4 Experiments and Analysis
+4 실험 및 분석
+
+4.1 Dataset We conduct our all experiments on the datasets collected by Han et al. [10]. It contains around 19,000 front-view woman and top clothing image pairs. There are 16253 cleaned pairs, which are split into a training set and a validation set with 14221 and 2032 pairs, respectively. We rearrange the images in the validation set into unpaired pairs as the testing set.
+4.1 데이터 집합 우리는 Han et al.이 수집 한 데이터 집합에 대해 모든 실험을 수행한다. [10]. 그것은 약 19,000의 정면보기 여성과 최고 의상 이미지 쌍을 포함합니다. 16253 개의 정리 된 쌍이 있으며 각각 14221 및 2032 쌍의 학습 집합과 유효성 집합으로 나뉩니다. 유효성 검사 세트의 이미지를 테스트되지 않은 쌍으로 재정렬합니다.
+
+4.2 Quantitative Evaluation We evaluate the quantitative performance of different virtual try-on methods via a human subjective perceptual study. Inception Score (IS) [29] is usually used as to quantitatively evaluate the image synthesis quality, but not suitable for evaluating this task for that it cannot reflect whether the details are preserved as described in [10]. We focus on the clothes with rich details since we are interested in characteristic-preservation, instead of evaluating on the whole testing set. For simplicity, we measure the detail richness of a clothing image by its total variation (TV) norm. It is appropriate for this dataset since the background is in pure color and the TV norm is only contributed by clothes itself, as illustrated in Fig. 3. We extracted 50 testing pairs with largest clothing TV norm named as CP-VTON 9 Fig. 3. From top to bottom, the TV norm values are increasing. Each line shows some clothes in the same level.
+4.2 정량적 평가 인간 주관적 지각 연구를 통해 다양한 가상 시험 방법의 정량적 성능을 평가한다. Inception Score (IS) [29]는 일반적으로 이미지 합성 품질을 정량적으로 평가하는 데 사용되지만 [10]에서 설명한대로 세부 정보가 보존되는지 여부를 반영 할 수 없다는 점에서이 작업을 평가하는 데 적합하지 않습니다. 우리는 전체 테스트 세트를 평가하는 대신 특성 보존에 관심이 있기 때문에 세부 사항이 풍부한 옷에 중점을 둡니다. 간단히하기 위해, 우리는 전체 유사 (TV) 표준에 따라 의류 이미지의 세부 사항을 측정합니다. 그림 3과 같이 배경이 순수한 색이며 TV 표준은 옷 자체만으로 이루어지기 때문에이 데이터 세트에 적합합니다. CP-VTON 9라는 가장 큰 의류 TV 표준을 사용하여 50 쌍의 테스트 쌍을 추출했습니다 (그림 3). 위에서 아래로, TV 표준 값이 증가하고 있습니다. 각 라인은 같은 수준의 옷을 보여줍니다.
+
+LARGE to evaluate characteristic-preservation of our methods, and 50 pairs with smallest TV norm named as SMALL to ensure that our methods perform at least as good as previous state-of-the-art methods in simpler cases.
+우리의 방법의 특징 보존을 평가하기위한 LARGE와 가장 작은 TV 표준 인 SMALL이라는 50 쌍으로 우리의 방법이 적어도 더 단순한 경우에는 이전의 최첨단 방법만큼 훌륭하게 수행되도록합니다.
+
+We conducted pairwise A/B tests on Amazon Mechanical Turk (AMT) platform. Specifically, given a person image and a target clothing image, the worker is asked to select the image which is more realistic and preserves more details of the target clothes between two virtual try-on results from different methods.
+우리는 Amazon Mechanical Turk (AMT) 플랫폼에서 pairwise A / B 테스트를 수행했습니다. 구체적으로, 사람 이미지와 대상 의류 이미지가 주어지면 작업자는 다른 방법의 두 가지 가상 시험 결과 사이에서보다 현실적인 이미지를 선택하고 대상 의류의 세부 정보를 더 보존해야합니다.
+
+There is no time limited for these jobs, and each job is assigned to 4 different workers. Human evaluation metric is computed in the same way as in [10].
+이 작업에는 제한된 시간이 없으며 각 작업은 4 명의 다른 작업자에게 할당됩니다. 인간 평가 척도는 [10]에서와 같은 방식으로 계산됩니다.
+
+4.3 Implementation Details Training Setup In all experiments, we use λL1 = λvgg = 1. When composition mask is used, we set λmask = 1. We trained both Geometric Matching Module and Try-on Module for 200K steps with batch size 4. We use Adam [15] optimizer with β1 = 0.5 and β2 = 0.999. Learning rate is first fixed at 0.0001 for 100K steps and then linearly decays to zero for the remaining steps. All input images are resized to 256 × 192 and the output images have the same resolution.
+4.3 구현 세부 사항 교육 설정 모든 실험에서 우리는 λL1 = λvgg = 1을 사용합니다. 합성 마스크를 사용할 때 λmask = 1로 설정합니다. Geometric Matching Module과 Try-on Module을 배치 크기가 200K 인 4 단계로 교육했습니다. β1 = 0.5, β2 = 0.999 인 Adam [15] 옵티마이 저. 학습률은 먼저 100K 단계 동안 0.0001로 고정 된 다음 나머지 단계에 대해 선형으로 감소합니다. 모든 입력 이미지의 크기가 256 x 192로 조정되고 출력 이미지의 해상도가 동일합니다.
+
+Geometric Matching Module Feature extraction networks for person representation and clothes have the similar structure, containing four 2-strided downsampling convolutional layers, succeeded by two 1-strided ones, their numbers of filters being 64, 128, 256, 512, 512, respectively. The only difference is the number of input channels. Regression network contains two 2-strided convolutional layers, two 1-strided ones and one fully-connected output layer. The numbers of filters are 512, 256, 128, 64. The fully-connected layer predicts the x- and ycoordinate offsets of TPS anchor points, thus has an output size of 2×5×5 = 50.
+기하학적 일치 모듈 인물 표현 및 의복을위한 특징 추출 네트워크는 비슷한 구조를 가지며 두 개의 스트라이핑 된 다운 샘플링 컨볼 루션 레이어를 포함하고 두 개의 스트라이드 레이어가 이어지며 각각의 필터 수는 64, 128, 256, 512, 512입니다. 유일한 차이점은 입력 채널의 수입니다. 회귀 네트워크에는 두 개의 스트라이핑 된 컨볼 루션 레이어와 두 개의 스트라이드 레이어 및 한 개의 완전히 연결된 출력 레이어가 있습니다. 필터 수는 512, 256, 128, 64입니다. 완전 연결 계층은 TPS 앵커 포인트의 x 및 y 좌표 오프셋을 예측하므로 출력 크기는 2 × 5 × 5 = 50입니다.
+
+Try-On Module We use a 12-layer UNet with six 2-strided down-sampling convolutional layers and six up-sampling layers. To alleviate so-called “checkerboard artifacts”, we replace 2-strided deconvolutional layers normally used for up-sampling with the combination of nearest-neighbor interpolation layers and
+Try-On Module 우리는 여섯 개의 2-strided 다운 샘플링 컨볼 루션 레이어와 6 개의 업 샘플링 레이어가있는 12-layer UNet을 사용합니다. 소위 "체커 보드 아티팩트"를 완화하기 위해, 우리는 업 샘플링에 일반적으로 사용되는 2 스트라이드 deconvolutional 레이어를 가장 가까운 이웃 보간 레이어와
+
+1-strided convolutional layers, as suggested by [25]. The numbers of filters for
+1-strided convolutional layers [25]에 의해 제안되었다. 필터 수
+
+10 Bochao Wang et al.
+Bochao Wang et al.
+
+Target Person SCMM GMM In-shop Clothes SCMM Align GMM Align Fig. 4. Matching results of SCMM and GMM. Warped clothes are directly pasted onto target persons for visual checking. Our method is comparable with SCMM and produces less weird results.
+대상자 SCMM GMM 매장 의류 SCMM GMM 정렬 맞춤 그림 4. SCMM과 GMM의 결과 일치. 뒤틀린 옷을 대상자에게 직접 붙여 시각적으로 확인합니다. 우리의 방법은 SCMM과 유사하며 이상한 결과를 가져 오지 않습니다.
+
+down-sampling convolutional layers are 64, 128, 256, 512, 512, 512. The numbers of filters for up-sampling convolutional layers are 512, 512, 256, 128, 64, 4.
+다운 샘플링 콘볼 루션 층은 64, 128, 256, 512, 512, 512이다. 업 샘플링 콘볼 루션 층에 대한 필터의 수는 512, 512, 256, 128, 64, 4이다.
+
+Each convolutional layer is followed by an Instance Normalization layer [33] and Leaky ReLU [24], of which the slope is set to 0.2.
+각각의 길쌈 층 다음에는 인스턴스 정규화 층 [33]과 Leaky ReLU [24]가 있으며 그 중 기울기는 0.2로 설정됩니다.
+
+4.4 Comparison of Warping Results Shape Context Matching Module (SCMM) uses hand-crafted descriptors and explicitly computes their correspondences using an iterative algorithm, which is time-consumed, while GMM runs much faster. In average, processing a sample pair takes GMM 0.06s on GPU, 0.52s on CPU, and takes SCMM 2.01s on CPU.
+4.4 Warping Results의 비교 SCMM (Shape Context Matching Module)은 수작업으로 작성된 디스크립터를 사용하고 반복적 인 알고리즘을 사용하여 명시 적으로 대응을 계산하며, 이는 GMM이 훨씬 빠르게 실행되는 반면 시간 소모적이다. 평균적으로 샘플 쌍 처리는 GPU에서 GMM 0.06 초, CPU에서 0.52 초, CPU에서 SCMM 2.01을 사용합니다.
+
+Qualitative results Fig. 4 demonstrates a qualitative comparison of SCMM and GMM. It shows that both modules are able to roughly align clothes with target person pose. However, SCMM tends to overly shrink a long sleeve into a “thin band”, as shown in the 6-th column in Fig. 4. This is because SCMM merely relies on matched shape context descriptors on the boundary of cloths shape, while ignores the internal structures. Once there exist incorrect correspondences of descriptors, the warping results will be weird. In contrast, GMM takes full advantages of the learned rich representation of clothes and person images to CP-VTON 11 Target Person In-shop Clothes CP-VTON VITON Fig. 5. Qualitative comparisons of VITON and CP-VTON. Our CP-VTON successfully preserve key details of in-shop clothes.
+정 성적 결과 그림 4는 SCMM과 GMM의 질적 비교를 보여준다. 두 모듈 모두 대상 사람의 자세와 옷을 대략적으로 정렬 할 수 있음을 보여줍니다. 그러나 SCMM은 그림 4의 6 번째 줄에서 볼 수 있듯이 긴 슬리브를 "얇은 밴드"로 과도하게 축소하는 경향이있다. 이는 SCMM이 단순히 옷감 모양의 경계에 일치하는 모양 컨텍스트 설명자를 사용하기 때문에 발생한다. 내부 구조. 기술 어의 부적절한 일치가 존재하면 뒤틀림 결과가 이상합니다. 대조적으로, GMM은 학습 된 풍부한 표현의 옷과 사람 이미지를 CP-VTON 11의 전체 장점으로 사용합니다. 대상자 상점 작업 CP-VTON VITON 그림 5. VITON과 CP-VTON의 정 성적 비교. CP-VTON은 매장 내 옷에 대한 주요 정보를 성공적으로 보존합니다.
+
+determinate TPS transformation parameters and more robust for large shape differences.
+TPS 변환 매개 변수를 결정하고 큰 모양 차이에 대해 더 강력합니다.
+
+Quantitative results It is difficult to evaluate directly the quantitative performance of matching modules due to the lack of ground truth in the testing phase. Nevertheless, we can simply paste the warped clothes onto the original person image as a non-parametric warped synthesis method in [10]. We conduct a perceptual user study following the protocol described in Sec. 4.2, for these two warped synthesis methods. The synthesized by GMM are rated more realistic in 49.5% and 42.0% for LARGE and SMALL, which indicates that GMM is comparable to SCMM for shape alignment.
+정량적 결과 테스트 단계에서 근거 진실이 없기 때문에 매칭 모듈의 정량적 성능을 직접 평가하는 것은 어렵습니다. 그럼에도 불구하고 [10]에서 비 파라 메 트릭 뒤틀린 합성 방법으로 원본 사람의 이미지 위에 뒤틀린 옷을 붙여 넣기 만하면됩니다. 우리는 Sec.에서 기술 된 프로토콜에 따라 지각적인 사용자 연구를 수행한다. 4.2, 이러한 두 개의 뒤틀린 합성 방법. GMM에 의해 합성 된 것은 LARGE 및 SMALL에 대해 49.5 % 및 42.0 %로보다 현실적으로 평가되며 이는 GMM이 모양 정렬을위한 SCMM과 비교됨을 나타냅니다.
+
+4.5 Comparison of Try-on Results Qualitative results Fig. 2 shows that our pipeline performs roughly the same as VITON when the patterns of target clothes are simpler. However, our pipeline preserves sharp and intact characteristic on clothes with rich details (e.g. texture, logo, embroidery) while VITON produces blurry results.
+4.5 시험 결과의 비교 정성적인 결과 그림 2는 목표 의류의 패턴이 더 간단 할 때 우리 파이프 라인이 VITON과 거의 동일하게 수행함을 보여줍니다. 그러나 VITON이 흐릿한 결과를내는 동안 우리의 파이프 라인은 풍부한 세부 사항 (예 : 질감, 로고, 자수)을 지닌 날카 롭고 손상되지 않은 특성을 보존합니다.
+
+We argue that the failure of VITON lies in its coarse-to-fine strategy and the imperfect matching module. Precisely, VITON learns to synthesis a coarse person image at first, then to align the clothes with target person with shape context matching, then to produce a composition mask for fusing UNet rendered person with warped clothes and finally producing a refined result. After extensive training, the rendered person image has already a small VGG perceptual loss with respect to ground truth. On the other hand, the imperfect matching module introduces unavoidable minor misalignment between the warped clothes and ground truth, making the warped clothes unfavorable to perceptual loss. Taken together, when further refined by truncated perceptual loss, the composition mask will be biased towards selecting rendered person image rather than warped
+우리는 VITON의 실패가 조악한 전략과 불완전 매칭 모듈에 있다고 주장한다. VITON은 처음에는 거친 사람의 이미지를 합성 한 다음 모양 컨텍스트가 일치하는 대상과 옷을 정렬 한 다음 UNet 렌더링 된 사람에게 뒤틀린 옷을 넣고 최종적으로 세련된 결과를 내기 위해 합성 마스크를 만듭니다. 광범위한 훈련 후에 렌더링 된 사람 이미지는 이미 지상 진실과 관련하여 VGG의 지각 손실이 적습니다. 반면에, 불완전 매칭 모듈은 뒤틀린 옷과지면 진실 사이에 피할 수없는 사소한 오정렬을 가져와 뒤틀린 옷을 지각 상실에 불리하게 만든다. 함께 절단 된 지각 손실에 의해 더 정교해질 때, 컴포지션 마스크는 뒤틀린 것이 아니라 렌더링 된 사람의 이미지를 선택하는 방향으로 편향 될 것입니다
+
+12 Bochao Wang et al.
+12 Bochao Wang 외.
+
+Table 1. Results of pairwise comparisons of images synthesized with LARGE and SMALL clothes by different models. Each column compares our approach with one of the baselines. Higher is better. The random chance is at 50%.
+표 1. 서로 다른 모델에 의해 큰 옷과 작은 옷으로 합성 된 이미지의 pairwise 비교 결과. 각 컬럼은 우리의 접근 방식을 기준선 중 하나와 비교합니다. 높을수록 좋습니다. 임의 확률은 50 %입니다.
+
+Data VITON CP-VTON(w/o mask) CP-VTON(w/o L1 Loss) LARGE 67.5% 72.5% 84.5% SMALL 55.0% 42% 38.5% In-shop Clothes Target Person Coarse Result Warped Clothes Composition Mask Refined Result Fig. 6. An example of VITON stage II. The composition mask tends to ignore the details of coarsely aligned clothes.
+데이터 VITON CP-VTON (마스크 없음) CP-VTON (L1 손실 없음) LARGE 67.5 % 72.5 % 84.5 % SMALL 55.0 % 42 % 38.5 % 매장 내 의류 대상 거친 결과 변형 된 옷 구성 마스크 세련된 결과 6. VITON II 단계의 예. 컴포지션 마스크는 거친 정렬 된 옷의 세부 사항을 무시하는 경향이 있습니다.
+
+clothes, despite the regularization of the composition mask(Eq. 4). The VITON’s “ragged” masks shown in Fig. 6 confirm this argument.
+옷을 입히고, 합성 마스크 (식 4)의 정규화에도 불구하고. VITON의 "불규칙한"마스크 (그림 6 참조)는이 주장을 뒷받침합니다.
+
+Our pipeline doesn’t address the aforementioned issue by improving matching results, but rather sidesteps it by simultaneously learning to produce a UNet rendered person image and a composition mask. Before the rendered person image becomes favorable to loss function, the central clothing region of composition mask is biased towards warped clothes because it agrees more with ground truth in the early training stage. It is now the warped clothes rather than the rendered person image that takes the early advantage in the competition of mask selection. After that, the UNet learns to adaptively expose regions where UNet rendering is more suitable than directly pasting. Once the regions of hair and arms are exposed, rendered and seamlessly fused with warped clothes.
+우리의 파이프 라인은 일치하는 결과를 개선하여 앞서 언급 한 문제를 해결하지는 않지만 UNet 렌더링 된 사람 이미지와 컴포지션 마스크를 동시에 생성하여이를 회피합니다. 렌더링 된 사람 이미지가 손실 기능에 유리하게되기 전에, 초기의 훈련 단계에서 지상 진실과 더 일치하기 때문에 컴포지션 마스크의 중앙 의류 영역이 뒤틀린 옷쪽으로 치우친 다. 이제는 마스크 선택의 경쟁에서 초기 이점을 취하는 렌더링 된 사람의 이미지보다는 뒤틀린 옷입니다. 그 후 UNet은 UNet 렌더링이 직접 붙여 넣는 것보다 적합한 지역을 적응 적으로 노출하는 방법을 배웁니다. 머리카락과 팔 부위가 노출되면 찢어진 옷과 완벽하게 융합됩니다.
+
+Quantitative results The first column of Table 1 shows that our pipeline surpasses VITON in the preserving the details of clothes using identical person representation. According to the table, our approach performs better than other methods, when dealing with rich details clothes.
+정량적 결과 표 1의 첫 번째 열은 우리의 파이프 라인이 동일한 사람의 표현을 사용하여 옷의 세부 사항을 보존하는 데있어 VITON을 능가한다는 것을 보여줍니다. 표에 따르면, 우리의 접근 방식은 풍부한 세부 사항의 옷을 다룰 때 다른 방법보다 잘 수행됩니다.
+
+4.6 Discussion and Ablation Studies Effects of composition mask To empirically justify the design of composition mask and mask L1 regularization (Eq. 4) in our pipeline, we compare it with two variants for ablation studies: (1): mask composition is also removed and the final results are directly rendered by UNet as CP-VTON(w/o mask). (2): the mask composition is used but the mask L1 regularization is removed as CP-VTON(w/o L1 Loss); As shown in Fig. 6, even though the warped clothes are roughly aligned with target person, CP-VTON(w/o mask) still loses characteristic details and CP-VTON 13 Target Person In-shop Clothes Without Mask Without L1 (Rendered) CP-VTON (Rendered) CP-VTON ?Mask? Without L1 (Mask) Fig. 7. Ablation studies on composition mask and mask L1 loss. Without mask composition, UNet cannot handle well even minor misalignment and produces undesirable try-on results. Without L1 regularization on mask, it tends to select UNet-rendered person, leading to blurry results as well.
+4.6 Discussion and Ablation Studies Effects of composition mask To empirically justify the design of composition mask and mask L1 regularization (Eq. 4) in our pipeline, we compare it with two variants for ablation studies: (1): mask composition is also removed and the final results are directly rendered by UNet as CP-VTON(w/o mask). (2): the mask composition is used but the mask L1 regularization is removed as CP-VTON(w/o L1 Loss); As shown in Fig. 6, even though the warped clothes are roughly aligned with target person, CP-VTON(w/o mask) still loses characteristic details and CP-VTON 13 Target Person In-shop Clothes Without Mask Without L1 (Rendered) CP-VTON (Rendered) CP-VTON ?Mask? Without L1 (Mask) Fig. 7. Ablation studies on composition mask and mask L1 loss. Without mask composition, UNet cannot handle well even minor misalignment and produces undesirable try-on results. Without L1 regularization on mask, it tends to select UNet-rendered person, leading to blurry results as well.
+Error 1001
+
+produces blurry results. This verifies that encoder-decoder network architecture like UNet fails to handle even minor spatial deformation.
+흐린 결과가 나옵니다. 이는 UNet과 같은 인코더 - 디코더 네트워크 아키텍처가 사소한 공간 변형을 처리하지 못한다는 것을 입증합니다.
+
+Though integrated with mask composition, CP-VTON(no L1) performs as poorly as variant CP-VTON(w/o mask. Fig. 7 shows that composition mask tends to select rendered person image without L1 regularization. This verifies that even minor misalignment introduces large perceptual disagreement between warped clothes and ground truth.
+마스크 구성과 통합되어 있지만 CP-VTON (L1 없음)은 변형 CP-VTON (w / o 마스크)과 같이 저조한 성능을 보입니다. 그림 7은 합성 마스크가 L1 정규화없이 렌더링 된 사람 이미지를 선택하는 경향이 있음을 보여줍니다. 뒤틀린 옷과 진실한 진실 사이에 큰 지각 불일치를 가져온다.
+
+Robustness against minor misalignment In Sec. 4.5 we argue that VITON is vulnerable to minor misalignment due to its coarse-to-fine strategy, while our pipeline sidesteps imperfect alignment by simultaneously producing rendered person and composition mask. This is further clarified below in a controlled condition with simulated warped clothes.
+사소한 오정렬에 대한 견고성 Sec. 4.5 우리는 VITON이 굵고 미세한 전략으로 인해 약간의 오정렬에 취약하며, 파이프 라인은 렌더 된 사람과 컴포지션 마스크를 동시에 생성함으로써 불완전한 정렬을 회피한다고 주장한다. 아래에 더 자세히 설명되어 있습니다.
+
+Specifically, rather than real warped clothes produced by matching module, we use the wore clothes collected from person images to simulate perfect alignment results. We then train VITON stage II, our proposed variant CPVTON(w/o mask) and our pipeline. For VITON stage II, we synthesize coarse person image with its source code and released model checkpoint.
+특히, 매칭 모듈에 의해 생성 된 실제 뒤틀린 옷보다는 사람 이미지에서 수집 된 입고 옷을 사용하여 완벽한 정렬 결과를 시뮬레이션합니다. 그런 다음 VITON 스테이지 II, 제안 된 변형 CPVTON (마스크 제외) 및 파이프 라인을 교육합니다. VITON II 단계에서는 소스 코드와 모델 체크 포인트를 가진 거친 사람 이미지를 합성합니다.
+
+It is predictable that with this “perfect matching module”, all the three methods could achieve excellent performance in training and validation phase, where input samples are paired. Next is the interesting part: what if the perfect alignment is randomly perturbed within a range of N pixels, to simulate an imperfect
+이 "완벽한 매칭 모듈"을 사용하면 세 가지 방법 모두가 입력 샘플이 쌍을 이루는 교육 및 유효성 검사 단계에서 우수한 성능을 얻을 수 있음을 예측할 수 있습니다. 흥미로운 부분은 다음과 같습니다. 완벽한 얼라인먼트가 N 픽셀의 범위 내에서 임의로 교란되면 불완전한 부분을 시뮬레이션합니다.
+
+14 Bochao Wang et al.
+14 Bochao Wang et al.
+
+Without Mask VITON CP-VTON N = 0 N = 5 N = 10 N = 15 N = 20 Fig. 8. Comparisons on the robustness of three methods against minor misalignment simulated by random shift within radius N. As N increasing, results of CP-VTON decays more slightly than other methods.
+마스크가없는 경우 VITON CP-VTON N = 0 N = 5 N = 10 N = 15 N = 20 그림 8. 반경 N에서 랜덤 쉬프트로 시뮬레이션 한 사소한 오정렬에 대한 세 가지 방법의 견고성 비교 N이 증가함에 따라 CP -VTON은 다른 방법보다 약간 감소합니다.
+
+Fig. 9. Some failure cases of our CP-VTON.
+그림 9. CP-VTON의 몇 가지 실패 사례
+
+matching module? With the perturbation getting greater (N = 0, 5, 10, 15, 20) , how fast will the try-on performance decay? These questions are answered in Fig. 8. As we applying greater perturbation, the performance of both VITON stage II and CP-VTON(w/o mask) decays quickly. In contrast, our pipeline shows robustness against perturbation and manages to preserve detailed characteristic.
+일치하는 모듈? 섭동이 커지면 (N = 0, 5, 10, 15, 20) 얼마나 빨리 시도 성능이 저하 될까요? 이 질문은 그림 8에 나와 있습니다. 우리가 더 큰 섭동을 가하면 VITON 2 단계와 CP-VTON (마스크없는) 모두의 성능이 빠르게 저하됩니다. 대조적으로, 우리의 파이프 라인은 섭동에 대한 견고성을 보여 주며 상세한 특성을 유지합니다.
+
+Failure cases Fig. 9 shows three failure cases of our CP-VTON method caused by (1) improperly preserved shape information of old clothes, (2) rare poses and (3) inner side of the clothes undistinguishable from the outer side, respectively.
+고장 사례 그림 9는 (1) 오래된 옷의 모양 정보가 부적절하게 보존 된 경우, (2) 희귀 한 포즈 및 (3) 바깥 쪽과 구별 할 수없는 옷의 안쪽면에 의한 CP-VTON 방법의 세 가지 실패 사례를 보여줍니다.
+
+5 Conclusions In this paper, we propose a fully learnable image-based virtual try-on pipeline towards the characteristic-preserving image generation, named as CP-VTON, including a new geometric matching module and a try-on module with the new merging strategy. The geometric matching module aims at aligning in-shop clothes and target person body with large spatial displacement. Given aligned clothes, the try-on module learns to preserve well the detailed characteristic of clothes. Extensive experiments show the overall CP-VTON pipeline produces high-fidelity virtual try-on results that retain well key characteristics of in-shop clothes. Our CP-VTON achieves state-of-the-art performance on the dataset collected by Han et al. [10] both qualitatively and quantitatively.
+5 결론 본 논문에서는 새로운 기하학적 매칭 모듈과 새로운 병합 전략을 포함하는 시운전 모듈을 포함하여 CP-VTON으로 명명 된 특징 보존 형 이미지 생성에 대한 완전히 배울 수있는 이미지 기반의 가상 시연 파이프 라인을 제안합니다 . 기하학적 매칭 모듈은 매장 내 옷과 큰 공간 변위를 가진 대상을 정렬하는 것을 목표로합니다. 정렬 된 옷을 감안할 때, try-on 모듈은 옷의 세부적인 특성을 잘 보존하는 법을 배웁니다. 광범위한 실험 결과 전체 CP-VTON 파이프 라인은 매장 내 옷의 핵심 특성을 잘 유지하면서 고 충실도 가상 시험 결과를 산출 함을 보여줍니다. CP-VTON은 한 외 (Han et al.)가 수집 한 데이터 세트에 최첨단 성능을 제공합니다. [10] 양적 및 양적으로.
+
+CP-VTON 15 References
+CP-VTON 15 참고 문헌
+
+1. Anguelov, D., Srinivasan, P., Koller, D., Thrun, S., Rodgers, J., Davis, J.: Scape: shape completion and animation of people. In: ACM transactions on graphics (TOG). vol. 24, pp. 408?416. ACM (2005)
+1. Anguelov, D., Srinivasan, P., Koller, D., Thrun, S., Rodgers, J., Davis, J .: Scape : 사람들의 모양 완성과 애니메이션. In : 그래픽 (TOG)에 대한 ACM 트랜잭션. vol. 24, pp. 408? 416. ACM (2005)
+
+2. Belongie, S., Malik, J., Puzicha, J.: Shape matching and object recognition using shape contexts. IEEE transactions on pattern analysis and machine intelligence
+2. Belongie, S., Malik, J., Puzicha, J .: 모양 맥락을 이용한 모양 일치 및 물체 인식. 패턴 분석 및 기계 지능에 관한 IEEE 거래
+
+24(4), 509?522 (2002)
+24(4), 509?522 (2002)
+
+3. Chen, Q., Koltun, V.: Photographic image synthesis with cascaded refinement networks. In: The IEEE International Conference on Computer Vision (ICCV).
+3. Chen, Q., Koltun, V .: 계단식 미세화 네트워크를 이용한 사진 이미지 합성. 컴퓨터 비전에 관한 IEEE 국제 회의 (ICCV).
+
+vol. 1 (2017)
+vol. 1 (2017)
+
+4. Chen, W., Wang, H., Li, Y., Su, H., Wang, Z., Tu, C., Lischinski, D., Cohen-Or, D., Chen, B.: Synthesizing training images for boosting human 3d pose estimation.
+4. Chen, W., Wang, H., Li, Y., Su, H., Wang, Z., Tu, C., Lischinski, D., Cohen- 인간의 3D 자세 추정을 높이기위한 이미지 훈련.
+
+In: 3D Vision (3DV), 2016 Fourth International Conference on. pp. 479?488. IEEE (2016)
+In : 3D Vision (3DV), 2016 제 4 회 국제 컨퍼런스 pp. 479 - 488. IEEE (2016)
+
+5. Choi, Y., Choi, M., Kim, M., Ha, J.W., Kim, S., Choo, J.: Stargan: Unified generative adversarial networks for multi-domain image-to-image translation. arXiv preprint arXiv:1711.09020 (2017)
+5. 최윤, 최, 김, M., 하, J.W., 김, 에스, 추, J : Stargan : arXiv preprint arXiv : 1711.09020 (2017)
+
+6. Deng, Z., Zhang, H., Liang, X., Yang, L., Xu, S., Zhu, J., Xing, E.P.: Structured generative adversarial networks. In: Advances in Neural Information Processing Systems. pp. 3899?3909 (2017)
+6. Deng, Z., Zhang, H., Liang, X., Yang, L., Xu, S., Zhu, J., Xing, E.P .: 구조적 생성 적 상대 네트워크. 에서 : 신경 정보 처리 시스템의 발전. pp. 3899? 3909 (2017)
+
+7. Fischler, M.A., Bolles, R.C.: Random sample consensus: a paradigm for model fitting with applications to image analysis and automated cartography. In: Readings in computer vision, pp. 726?740. Elsevier (1987)
+7. Fischler, M.A., Bolles, R.C .: 무작위 표본 일치 : 심상 분석 및 자동화 된지도 제작에 신청을 가진 모형 이음쇠를위한 패러다임. 에서 : 컴퓨터 비전의 수치, 726 ~ 740 쪽. Elsevier (1987)
+
+8. Gong, K., Liang, X., Shen, X., Lin, L.: Look into person: Self-supervised structuresensitive learning and a new benchmark for human parsing. arXiv preprint arXiv:1703.05446 (2017)
+8. Gong, K., Liang, X., Shen, X., Lin, L .: 사람을 살펴 봅니다 : 자기 감추어 구조 감수성 학습과 인간 파싱을위한 새로운 벤치 마크. arXiv preprint arXiv : 1703.05446 (2017)
+
+9. Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., Bengio, Y.: Generative adversarial nets. In: Advances in neural information processing systems. pp. 2672?2680 (2014)
+9. Goodfellow, I., Pouget-Abadie, J., Mirza, M., Xu, B., Warde-Farley, D., Ozair, S., Courville, A., Bengio, Y .: Generative adversarial net. 에서 : 신경 정보 처리 시스템의 발전. pp. 2672? 2680 (2014)
+
+10. Han, X., Wu, Z., Wu, Z., Yu, R., Davis, L.S.: Viton: An image-based virtual try-on network. arXiv preprint arXiv:1711.08447 (2017)
+10. Han, X., Wu, Z., Wu, Z., Yu, R., Davis, L.S. .: Viton : 이미지 기반 가상 시험 네트워크. arXiv preprint arXiv : 1711.08447 (2017)
+
+11. He, K., Zhang, X., Ren, S., Sun, J.: Deep residual learning for image recognition.
+11. He, K., Zhang, X., Ren, S., Sun, J .: 이미지 인식을위한 잔차 학습.
+
+In: CVPR. pp. 770?778 (2016)
+있음 : CVPR. pp. 770 ~ 778 (2016)
+
+12. Isola, P., Zhu, J.Y., Zhou, T., Efros, A.A.: Image-to-image translation with conditional adversarial networks. arXiv preprint (2017)
+12. Isola, P., Zhu, J.Y., Zhou, T., Efros, A.A .: 조건 적 적대 네트워크를 이용한 이미지 - 이미지 변환. arXiv 사전 인쇄 (2017)
+
+13. Jetchev, N., Bergmann, U.: The conditional analogy gan: Swapping fashion articles on people images. arXiv preprint arXiv:1709.04695 (2017)
+13. Jetchev, N., Bergmann, U .: 조건부 유추 gan : 사람들 이미지에 대한 유행 기사 교환. arXiv preprint arXiv : 1709.04695 (2017)
+
+14. Johnson, J., Alahi, A., Fei-Fei, L.: Perceptual losses for real-time style transfer and super-resolution. In: ECCV. pp. 694?711 (2016)
+14. Johnson, J., Alahi, A., Fei-Fei, L .: 실시간 스타일 전송 및 초 해상도에 대한 지각 손실. 있음 : ECCV. 694-711 (2016)
+
+15. Kinga, D., Adam, J.B.: A method for stochastic optimization. In: International Conference on Learning Representations (ICLR) (2015)
+15. Kinga, D., Adam, J.B .: 확률 적 최적화를위한 방법. In : 학습 표현에 관한 국제 회의 (ICLR) (2015)
+
+16. Lamdan, Y., Schwartz, J.T., Wolfson, H.J.: Object recognition by affine invariant matching. In: Computer Vision and Pattern Recognition, 1988. Proceedings CVPR’88., Computer Society Conference on. pp. 335?344. IEEE (1988)
+16. Lamdan, Y., Schwartz, J.T., Wolfson, H.J. : 아핀 불변 매칭에 의한 물체 인식. 에서 : 컴퓨터 비전 및 패턴 인식, 1988. 절차 CVPR'88., 컴퓨터 학회 컨퍼런스. pp. 335? 344. IEEE (1988)
+
+17. Lassner, C., Pons-Moll, G., Gehler, P.V.: A generative model of people in clothing.
+17. Lassner, C., Pons-Moll, G., Gehler, P.V .: 의류에있는 사람들의 생성 모델.
+
+arXiv preprint arXiv:1705.04098 (2017)
+arXiv preprint arXiv : 1705.04098 (2017)
+
+18. Li, J., Liang, X., Wei, Y., Xu, T., Feng, J., Yan, S.: Perceptual generative adversarial networks for small object detection. In: IEEE CVPR (2017)
+18. Li, J., Liang, X., Wei, Y., Xu, T., Feng, J., Yan, S .: 작은 물체 탐지를위한 지각 적 생식 적 네트워크. 입력 : IEEE CVPR (2017)
+
+16 Bochao Wang et al.
+16 Bochao Wang et al.
+
+19. Liang, X., Lee, L., Dai, W., Xing, E.P.: Dual motion gan for future-flow embedded video prediction. In: IEEE International Conference on Computer Vision (ICCV).
+19. Liang, X., Lee, L., Dai, W., Xing, E.P .: 미래 흐름 임베디드 비디오 예측을위한 듀얼 모션 Gan. 컴퓨터 비전에 관한 IEEE 국제 회의 (ICCV).
+
+vol. 1 (2017)
+vol. 1 (2017)
+
+20. Liang, X., Zhang, H., Xing, E.P.: Generative semantic manipulation with contrasting gan. arXiv preprint arXiv:1708.00315 (2017)
+20. Liang, X., Zhang, H., Xing, E.P .: 대조적 인 의미론을 가진 생성 적 의미 론적 조작. arXiv 사전 인쇄 arXiv : 1708.00315 (2017)
+
+21. Long, J., Shelhamer, E., Darrell, T.: Fully convolutional networks for semantic segmentation. In: CVPR. pp. 3431?3440 (2015)
+21. Long, J., Shelhamer, E., Darrell, T .: 의미 론적 세분화를위한 완전 컨벌루션 네트워크. 있음 : CVPR. pp. 3431? 3440 (2015)
+
+22. Lowe, D.G.: Distinctive image features from scale-invariant keypoints. International journal of computer vision 60(2), 91?110 (2004)
+22. Lowe, D.G .: 스케일 불변의 키포인트로부터의 독특한 이미지 특징. 컴퓨터 비전 60 (2), 91? 110 (2004)의 국제 저널
+
+23. Ma, L., Jia, X., Sun, Q., Schiele, B., Tuytelaars, T., Van Gool, L.: Pose guided person image generation. In: Advances in Neural Information Processing Systems.
+23. Ma, L., Jia, X., Sun, Q., Schiele, B., Tuytelaars, T., Van Gool, L .: 포즈 유도 된 이미지 생성. 에서 : 신경 정보 처리 시스템의 발전.
+
+pp. 405?415 (2017)
+pp. 405-415 (2017)
+
+24. Maas, A.L., Hannun, A.Y., Ng, A.Y.: Rectifier nonlinearities improve neural network acoustic models. In: Proc. icml. vol. 30, p. 3 (2013)
+24. Maas, A.L., Hannun, A.Y., Ng, A.Y .: 정류기 비선형 성은 신경망 음향 모델을 향상시킨다. 있음 : Proc. icml. vol. 30, p. 3 (2013)
+
+25. Odena, A., Dumoulin, V., Olah, C.: Deconvolution and checkerboard artifacts.
+25. Odena, A., Dumoulin, V., Olah, C .: Deconvolution 및 체커 보드 인공물.
+
+Distill 1(10), e3 (2016)
+증류 1 (10), e3 (2016)
+
+26. Pons-Moll, G., Pujades, S., Hu, S., Black, M.J.: Clothcap: Seamless 4d clothing capture and retargeting. ACM Transactions on Graphics (TOG) 36(4), 73 (2017)
+26. Pons-Moll, G., Pujades, S., Hu, S., Black, M.J .: Clothcap : 완벽한 4 차원 옷 포착 및 재 타겟팅. 그래픽에 대한 ACM 트랜잭션 (TOG) 36 (4), 73 (2017)
+
+27. Rocco, I., Arandjelovic, R., Sivic, J.: Convolutional neural network architecture for geometric matching. In: Proc. CVPR. vol. 2 (2017)
+27. Rocco, I., Arandjelovic, R., Sivic, J .: 기하학적 인 매칭을위한 길쌈 신경망 구조. 있음 : Proc. CVPR. vol. 2 (2017)
+
+28. Ronneberger, O., Fischer, P., Brox, T.: U-net: Convolutional networks for biomedical image segmentation. In: International Conference on Medical image computing and computer-assisted intervention. pp. 234?241. Springer (2015)
+28. Ronneberger, O., Fischer, P., Brox, T .: U-net : 생체 이미지 분할을위한 컨볼 루션 네트워크. 에서 : 의학 화상 진료 및 컴퓨터 보조 중재에 관한 국제 회의. pp. 234-241. 스프링거 (2015)
+
+29. Salimans, T., Goodfellow, I., Zaremba, W., Cheung, V., Radford, A., Chen, X.: Improved techniques for training gans. In: NIPS. pp. 2234?2242 (2016)
+29. Salimans, T., Goodfellow, I., Zaremba, W., Cheung, V., Radford, A., Chen, X .: 훈련 훈련 기술 향상. 있음 : NIPS. pp. 2234? 2242 (2016)
+
+30. Sekine, M., Sugita, K., Perbet, F., Stenger, B., Nishiyama, M.: Virtual fitting by single-shot body shape estimation. In: Int. Conf. on 3D Body Scanning Technologies. pp. 406?413. Citeseer (2014)
+30. Sekine, M., Sugita, K., Perbet, F., Stenger, B., Nishiyama, M .: 단일 샷 체형 추정에 의한 가상 피팅. 있음 : Int. Conf. 3D 바디 스캐닝 기술에 관한 pp. 406 ~ 413. Citeseer (2014)
+
+31. Siarohin, A., Sangineto, E., Lathuiliere, S., Sebe, N.: Deformable gans for posebased human image generation. arXiv preprint arXiv:1801.00055 (2017)
+31. Siarohin, A., Sangineto, E., Lathuiliere, S., Sebe, N .: 포즈 기반의 인간 이미지 생성을위한 변형 가능한 간. arXiv preprint arXiv : 1801.00055 (2017)
+
+32. Simonyan, K., Zisserman, A.: Very deep convolutional networks for large-scale image recognition. arXiv preprint arXiv:1409.1556 (2014)
+32. Simonyan, K., Zisserman, A .: 대규모 이미지 인식을위한 매우 깊은 콘볼 루션 네트워크. arXiv 사전 인쇄 arXiv : 1409.1556 (2014)
+
+33. Ulyanov, D., Vedaldi, A., Lempitsky, V.: Improved texture networks: Maximizing quality and diversity in feed-forward stylization and texture synthesis. In: Proc.
+33. Ulyanov, D., Vedaldi, A., Lempitsky, V. : 개선 된 텍스처 네트워크 : 피드 포워드 양식 및 텍스처 합성에서 품질과 다양성 극대화. 있음 : Proc.
+
+CVPR (2017)
+CVPR (2017)
+
+34. Wang, T.C., Liu, M.Y., Zhu, J.Y., Tao, A., Kautz, J., Catanzaro, B.: Highresolution image synthesis and semantic manipulation with conditional gans. arXiv preprint arXiv:1711.11585 (2017)
+34. Wang, T.C., Liu, M.Y., Zhu, J.Y., Tao, A., Kautz, J., Catanzaro, B .: 고역 분해능 이미지 합성 및 조건 적 간조를 이용한 의미 조작. arXiv preprint arXiv : 1711.11585 (2017)
+
+35. Yang, L., Liang, X., Xing, E.: Unsupervised real-to-virtual domain unification for end-to-end highway driving. arXiv preprint arXiv:1801.03458 (2018)
+35. Yang, L., Liang, X., Xing, E .: 종단 간 고속도로 주행을위한 감독되지 않은 실제 - 가상 도메인 통 합. arXiv preprint arXiv : 1801.03458 (2018)
+
+36. Yoo, D., Kim, N., Park, S., Paek, A.S., Kweon, I.S.: Pixel-level domain transfer.
+36. Yoo, D., Kim, N., Park, S., Paek, A.S., Kweon, I.S .: 픽셀 레벨 도메인 전송.
+
+In: European Conference on Computer Vision. pp. 517?532. Springer (2016)
+에서 : 컴퓨터 비전에 대한 유럽 회의. pp.517-532. 스프링 어 (2016)
+
+37. Zhao, B., Wu, X., Cheng, Z.Q., Liu, H., Feng, J.: Multi-view image generation from a single-view. arXiv preprint arXiv:1704.04886 (2017)
+37. Zhao, B., Wu, X., Cheng, Z.Q., Liu, H., Feng, J .: 단일 시점에서 다중 시점 이미지 생성. arXiv 사전 인쇄 arXiv : 1704.04886 (2017)
+
+38. Zhu, J.Y., Park, T., Isola, P., Efros, A.A.: Unpaired image-to-image translation using cycle-consistent adversarial networks. arXiv preprint arXiv:1703.10593 (2017)
+38. Zhu, J.Y., Park, T., Isola, P., Efros, A.A .: 순환 일관성 적 (Cyclic-consistent) 대 상 네트워크를 사용하는 이미지 비 이미지 변환. arXiv 사전 인쇄 arXiv : 1703.10593 (2017)
+
+39. Zhu, S., Fidler, S., Urtasun, R., Lin, D., Loy, C.C.: Be your own prada: Fashion synthesis with structural coherence. arXiv preprint arXiv:1710.07346 (2017)
+39. Zhu, S., Fidler, S., Urtasun, R., Lin, D., Loy, C.C .: 구조 일관성을 지닌 패션 합성. arXiv preprint arXiv : 1710.07346 (2017)
+
