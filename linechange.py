@@ -63,21 +63,31 @@ ko = open("onlyko.txt","w")
 for data in newlist:
 	print(len(data))
 	print(data)
+	#try:
+	print("###")
+	text = "0"
 	try:
-		print("###")
-		text = ""
 		text = translator.translate(data,dest='ko').text
-		print(text)
-		print(type(text))
-		print("&&&")
+	except Exception as ex:
 		f.write(data)
 		f.write('\n')
-		f.write(text)
-		ko.write(text + '\n\n')
-		print("((()))")
+		f.write('Error %d' %len(data))
+		ko.write('Error %d' %len(data))
 		f.write('\n\n')
+		print(u"번역 오류")
+		print(ex)
+	print(text)
+	print(type(text))
+	print("&&&")
+	f.write(data)
+	f.write('\n')
+	newtext = text.encode('utf-8')
+	f.write(newtext)
+	ko.write(newtext + '\n\n')
+	print("((()))")
+	f.write('\n\n')
 
-	
+	'''
 	
 	except Exception as ex:
 		f.write(data)
@@ -87,7 +97,7 @@ for data in newlist:
 		f.write('\n\n')
 		print(u"번역 오류")
 		print(ex)
-	
+	'''
 '''
 def translate(sl,tl,word):
         #from sl to tl
